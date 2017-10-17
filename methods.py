@@ -103,6 +103,12 @@ def orbital(N,T,i):
     ax1[1].plot(track[:,0],track[:,1])
     return rad[-1]
 
+def tomin(x,T):
+    a = 1.523679
+    e = 0.0934
+    semmaj = a/(1+e)
+    x = x-e*np.sin(x)-T*np.sqrt(np.power(semmaj,-3))
+    return x
 
 def newraph(N,T):
     a = 1.523679
@@ -110,9 +116,69 @@ def newraph(N,T):
     semmaj = a/(1+e)
     x = 0
     for i in range(N):
-        x = x - (x-e*np.sin(x)-T*np.sqrt(np.power(semmaj,-3)))/(1-e*np.cos(x))
+        x = x - (tomin(x,T))/(1-e*np.cos(x))
     r = semmaj*(1-e*np.cos(x))
     return r
+
+def secant(N,T):
+    a = 1.523679
+    tol = 1e-15
+    e = 0.0934
+    semmaj = a/(1+e)
+    x1 = 0
+    x2 = np.pi*0.5
+    for i in range(N):
+        x = x2 - tomin(x2,T)*(x2-x1)/(tomin(x2,T)-tomin(x1,T))
+        x1 = x2
+        x2 = x
+        if np.abs(x2-x1)<tol:
+            break
+    r = semmaj*(1-e*np.cos(x))
+    return r
+
+def relax(N,T):
+    a = 1.523679
+    e = 0.0934
+    semmaj = a/(1+e)
+    x = 0
+    for i in range(N):
+        x = x - tomin(x,T)
+    r = semmaj*(1-e*np.cos(x))
+    return r
+
+def bisect(N,T):
+    tol = 1e-16
+    a = 1.523679
+    e = 0.0934
+    semmaj = a/(1+e)
+    x1 = 0
+    x2 = 2*np.pi
+    fx1 = tomin(x1,T)
+    fx2 = tomin(x2,T)
+    count = 0
+    while count<N:
+        if np.sign(fx1).astype(int) == - np.sign(fx2).astype(int):
+            xnew = 0.5*(x1+x2)
+            fxnew = tomin(xnew,T)
+            if  np.sign(fx1).astype(int) == np.sign(fxnew).astype(int):
+                x1 = xnew
+                fx1 = fxnew
+                count += 1
+                if abs(x1-x2)<tol:
+                    break
+            else:
+                x2 = xnew
+                fx2 = fxnew
+                count += 1
+                if abs(x1-x2)<tol:
+                    break
+        else:
+            print('even root number at %i!' % count)
+            break
+    x = 0.5*(x1+x2)
+    r = semmaj*(1-e*np.cos(x))
+    return r
+
 
 def errorplot(N,T,filename=None):
     terms = len(N)
