@@ -14,7 +14,6 @@ def rk2(h,y0):
     y0 = y0 + k2
     return y0
 
-
 def rk4(h,y0):
     k1 = h*df(y0)
     k2 = h*df(y0+0.5*k1)
@@ -38,70 +37,6 @@ def df(r):
     df[2] = -4*np.power(np.pi, 2)*r[0]*np.power(rad,-3)
     df[3] = -4*np.power(np.pi, 2)*r[1]*np.power(rad,-3)
     return df
-        
-def orbital(N,T,i):
-    h = T/N
-    a = 1.523679
-    e = 0.0934
-    semmaj = a/(1+e)
-    semmin = semmaj*np.sqrt(1-np.power(e,2))
-    r = np.zeros(4)
-    f = np.zeros(4)
-    track = np.zeros([N,4])
-    r[0] = -a*(1+e)
-    r[3] = 2*np.pi*np.sqrt((1-e)/(a*(1+e)))
-    if i == 0:
-        for j in range(N):
-            track[j,:] = r
-            r = feul(h,r)
-    if i == 1:
-        for j in range(N):
-            track[j,:] = r
-            r = rk2(h,r)
-    if i == 2:
-        for j in range(N):
-            track[j,:] = r
-            r = rk4(h,r)
-    if i == 3:
-        track[0,:] = r
-        vhalf = r[2:]+0.5*h*df(r)[2:]
-        for j in range(N-1):
-            inter = verlet(h,r,vhalf)
-            r = inter[0]
-            vhalf = inter[1]
-            track[j+1,:] = r
-    if i == 4:
-        beta = 0.9
-        ep0 = np.array([1e-12,1e-12,1e-12,1e-12])
-        ep0min = min(ep0)
-        t = 0
-        track = [r]
-        count = 0
-        while t < T:
-            if count > 100:
-                print("I got stuck")
-                break
-            else:
-                r1 = rk4(h,r)
-                r2 = rk4(0.5*h,r)
-                r3 = rk4(0.5*h,r2)
-                ep = np.abs(r1-r3)/15
-                epmax = max(ep)
-                if np.all(ep0>ep):
-                    t += h
-                    track  = np.append(track,[r1],axis=0)
-                    h = beta*h*np.power((ep0min/epmax),0.2)
-                    r = r1
-                    count = 0
-                else:
-                    h = beta*h*np.power((ep0min/epmax),0.25)
-                    count += 1
-    rad = np.sqrt(np.power(track[:,0],2)+np.power(track[:,1],2))
-    E = .5*(track[:,3]*track[:,3]+track[:,2]*track[:,2])-np.power(rad,-1)
-    fig1, ax1 = plt.subplots(2,1)
-    ax1[0].plot(E,'k-')
-    ax1[1].plot(track[:,0],track[:,1])
-    return rad[-1]
 
 def tomin(x,T):
     a = 1.523679
@@ -179,6 +114,69 @@ def bisect(N,T):
     r = semmaj*(1-e*np.cos(x))
     return r
 
+def orbital(N,T,i):
+    h = T/N
+    a = 1.523679
+    e = 0.0934
+    semmaj = a/(1+e)
+    semmin = semmaj*np.sqrt(1-np.power(e,2))
+    r = np.zeros(4)
+    f = np.zeros(4)
+    track = np.zeros([N,4])
+    r[0] = -a*(1+e)
+    r[3] = 2*np.pi*np.sqrt((1-e)/(a*(1+e)))
+    if i == 0:
+        for j in range(N):
+            track[j,:] = r
+            r = feul(h,r)
+    if i == 1:
+        for j in range(N):
+            track[j,:] = r
+            r = rk2(h,r)
+    if i == 2:
+        for j in range(N):
+            track[j,:] = r
+            r = rk4(h,r)
+    if i == 3:
+        track[0,:] = r
+        vhalf = r[2:]+0.5*h*df(r)[2:]
+        for j in range(N-1):
+            inter = verlet(h,r,vhalf)
+            r = inter[0]
+            vhalf = inter[1]
+            track[j+1,:] = r
+    if i == 4:
+        beta = 0.9
+        ep0 = np.array([1e-12,1e-12,1e-12,1e-12])
+        ep0min = min(ep0)
+        t = 0
+        track = [r]
+        count = 0
+        while t < T:
+            if count > 100:
+                print("I got stuck")
+                break
+            else:
+                r1 = rk4(h,r)
+                r2 = rk4(0.5*h,r)
+                r3 = rk4(0.5*h,r2)
+                ep = np.abs(r1-r3)/15
+                epmax = max(ep)
+                if np.all(ep0>ep):
+                    t += h
+                    track  = np.append(track,[r1],axis=0)
+                    h = beta*h*np.power((ep0min/epmax),0.2)
+                    r = r1
+                    count = 0
+                else:
+                    h = beta*h*np.power((ep0min/epmax),0.25)
+                    count += 1
+    rad = np.sqrt(np.power(track[:,0],2)+np.power(track[:,1],2))
+    E = .5*(np.power(track[:,3],2)+np.power(track[:,2],2))-np.power(rad,-1)
+    fig1, ax1 = plt.subplots(2,1)
+    ax1[0].plot(E,'k-')
+    ax1[1].plot(track[:,0],track[:,1])
+    return rad[-1]
 
 def errorplot(N,T,filename=None):
     terms = len(N)
