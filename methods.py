@@ -2,7 +2,7 @@ from __future__ import division
 import pylab as plt
 import numpy as np
 import math
-
+import leastsquares as ls
 
 def feul(h,y0):
     y = y0 + h*df(y0)
@@ -23,11 +23,12 @@ def rk4(h,y0):
     y0 = y0 + k1/6.0 + k2/3.0 + k3/3.0 + k4/6.0
     return y0
 
-def verlet(h,y1,y0):
-    a = df(y1)
-    y = np.zeros(4)
-    y[0:2] = 2*y1[0:2] - y0[0:2] + a[2:]*np.power(h,2)
-    return y
+def verlet(h,y0,v):
+    y0[0:2] = y0[:2] + h*v
+    k = h*df(y0)[2:]
+    y0[2:] = v+0.5*k
+    v = v+k
+    return np.array([y0,v])
 
 def df(r):
     rad = np.sqrt(np.power(r[0],2)+np.power(r[1],2))
@@ -42,39 +43,39 @@ def orbital(N,T,i):
     h = T/N
     a = 1.523679
     e = 0.0934
+    semmaj = a/(1+e)
+    semmin = semmaj*np.sqrt(1-np.power(e,2))
     r = np.zeros(4)
     f = np.zeros(4)
-    track = np.zeros([N,2])
+    track = np.zeros([N,4])
     r[0] = -a*(1+e)
     r[3] = 2*np.pi*np.sqrt((1-e)/(a*(1+e)))
     if i == 0:
         for j in range(N):
-            track[j,:] = r[0:2]
+            track[j,:] = r
             r = feul(h,r)
     if i == 1:
         for j in range(N):
-            track[j,:] = r[0:2]
+            track[j,:] = r
             r = rk2(h,r)
     if i == 2:
         for j in range(N):
-            track[j,:] = r[0:2]
+            track[j,:] = r
             r = rk4(h,r)
     if i == 3:
-        r0 = r
-        r1 = rk4(h,r)
-        track[0,:] = r0[0:2]
-        track[1,:] = r1[0:2]
-        for j in range(N-2):
-            r = verlet(h,r1,r0)
-            track[j+2,:] = r[0:2]
-            r0 = r1
-            r1 = r
+        track[0,:] = r
+        vhalf = r[2:]+0.5*h*df(r)[2:]
+        for j in range(N-1):
+            inter = verlet(h,r,vhalf)
+            r = inter[0]
+            vhalf = inter[1]
+            track[j+1,:] = r
     if i == 4:
         beta = 0.9
         ep0 = np.array([1e-12,1e-12,1e-12,1e-12])
         ep0min = min(ep0)
         t = 0
-        track = np.array([[r[0],0]])
+        track = [r]
         count = 0
         while t < T:
             if count > 100:
@@ -88,19 +89,66 @@ def orbital(N,T,i):
                 epmax = max(ep)
                 if np.all(ep0>ep):
                     t += h
-                    track  = np.append(track,[r1[0:2]],axis=0)
+                    track  = np.append(track,[r1],axis=0)
                     h = beta*h*np.power((ep0min/epmax),0.2)
                     r = r1
                     count = 0
                 else:
                     h = beta*h*np.power((ep0min/epmax),0.25)
                     count += 1
-    plt.plot(track[:,0],track[:,1])
-    return r
-    
-def newraph(t0,tf,y0,N,f,dy):
-    h = abs(tf-t0)/N
-    y = y0
+    rad = np.sqrt(np.power(track[:,0],2)+np.power(track[:,1],2))
+    E = .5*(track[:,3]*track[:,3]+track[:,2]*track[:,2])-np.power(rad,-1)
+    fig1, ax1 = plt.subplots(2,1)
+    ax1[0].plot(E,'k-')
+    ax1[1].plot(track[:,0],track[:,1])
+    return rad[-1]
+
+
+def newraph(N,T):
+    a = 1.523679
+    e = 0.0934
+    semmaj = a/(1+e)
+    x = 0
     for i in range(N):
-        y = y - f(y)/df(y)
-    return y
+        x = x - (x-e*np.sin(x)-T*np.sqrt(np.power(semmaj,-3)))/(1-e*np.cos(x))
+    r = semmaj*(1-e*np.cos(x))
+    return r
+
+def errorplot(N,T,filename=None):
+    terms = len(N)
+    a = np.zeros([terms,5])
+    exact = newraph(1000,5)
+    for i in range(terms):
+        for j in range(5):
+            a[i,j] = np.abs(orbital(N[i],T,j)-exact)
+    lN = np.log10(N)
+    la = np.log10(a)
+    least  = np.zeros([5,2])
+    for j in range(5):
+        least[j,:] = ls.leastsquares(lN,la[:,j])
+    
+    fig1, ax1 = plt.subplots(1,1)
+    # ax1.plot(lN, la[:,0],'ko')
+    # p0, = ax1.plot(lN,least[0,0]*lN+least[0,1],'k-',label = '%.4f' % least[0,0])
+    # ax1.set_title("t = "+str(T))
+  
+    # ax1.plot(lN, la[:,1],'ro')
+    # p1, = ax1.plot(lN,least[1,0]*lN+least[1,1],'r-',label = '%.4f RK2' % least[1,0])
+
+    # ax1.plot(lN, la[:,2],'bo')
+    # p2, = ax1.plot(lN,least[2,0]*lN+least[2,1],'b-',label = '%.4f RK4' % least[2,0])
+
+    # ax1.plot(lN, la[:,3],'go')
+    # p3, = ax1.plot(lN,least[3,0]*lN+least[3,1],'g-',label = '%.4f Verlet' % least[3,0])
+
+    # ax1.plot(lN, la[:,4],'mo')
+    # p4, = ax1.plot(lN,least[4,0]*lN+least[4,1],'m-',label = '%.4f Adaptive RK4' % least[4,0])
+    # l0 = ax1.legend(handles=[p1,p2,p3,p4],loc=1)  
+
+
+    # ax1.set_ylabel(r'$r$ Log Error')
+    # ax1[1].set_ylabel(r'RK2')
+    # ax1[2].set_ylabel(r'RK4')
+    # ax1[3].set_ylabel(r'Verlet')
+    # ax1[4].set_ylabel(r'Adaptive RK4')
+    # ax1[4].set_xlabel(r'Log $N$')
