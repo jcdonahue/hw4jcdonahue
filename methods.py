@@ -35,9 +35,7 @@ def rk4(h,y0,N):
     return track
 
 def adaprk4(h,r,T):
-    beta = 0.9
     ep0 = np.array([1e-10,1e-10,1e-10,1e-10])
-    ep0min = min(ep0)
     t = 0
     track = [r]
     count = 0
@@ -46,18 +44,25 @@ def adaprk4(h,r,T):
             print("I got stuck")
             break
         else:
-            r1 = rk4(h,r,2)[-1]
-            r2 = rk4(0.5*h,r,3)[-1]
-            ep = np.abs(r1-r2)/15
-            epmax = max(ep)
-            if np.all(ep0>ep):
+            r1 = rk4(2*h,r,2)[-1]
+            r2 = rk4(h,r,3)[-1]
+            diff = np.abs(r1-r2)
+            if np.any(diff == 0):
+                diff = h*ep0
+            rho = 30*h*ep0/np.abs(r1-r2)
+            rhomax = max(rho)
+            if np.all(rho>1):
                 t += h
                 track  = np.append(track,[r1],axis=0)
-                h = beta*h*np.power((ep0min/epmax),0.2)
+                p = np.power(min(rho),0.25)
+                if p>2:
+                    p=2
+                h = h*p
                 r = r1
                 count = 0
             else:
-                h = beta*h*np.power((ep0min/epmax),0.25)
+                p = np.power(min(rho),0.25)
+                h = h*p
                 count += 1
     return track
 
