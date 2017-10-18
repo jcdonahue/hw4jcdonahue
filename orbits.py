@@ -25,7 +25,7 @@ def orbital(N,T,i):
     if i == 4:
         track = adaprk4(h,r,T)
     rad = np.sqrt(np.power(track[:,0],2)+np.power(track[:,1],2))
-    E = .5*(np.power(track[:,3],2)+np.power(track[:,2],2))-np.power(rad,-1)
+    E = .5*(np.power(track[:,3],2)+np.power(track[:,2],2))-4*np.pi*np.power(rad,-1)
     fig1, ax1 = plt.subplots(2,1)
     ax1[0].plot(E,'k-')
     ax1[1].plot(track[:,0],track[:,1])
@@ -35,7 +35,7 @@ def halley(N,pers):
     period = 75
     T = pers*period
     h = T/N
-    a = 35.0823104
+    a = 17.834144
     e = .96714
     r = np.zeros(4)
     r[0] = -a*(1+e)

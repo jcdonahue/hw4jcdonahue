@@ -92,18 +92,16 @@ def tomin(x,T,a,e):
 def newraph(N,T,a,e):
     # a = 1.523679
     # e = 0.0934
-    semmaj = a/(1+e)
     x = 0
     for i in range(N):
         x = x - (tomin(x,T,a,e))/(1-e*np.cos(x))
-    r = semmaj*(1-e*np.cos(x))
+    r = a*(1-e*np.cos(x))
     return r
 
 def secant(N,T):
     a = 1.523679
     tol = 1e-15
     e = 0.0934
-    semmaj = a/(1+e)
     x1 = 0
     x2 = np.pi*0.5
     for i in range(N):
@@ -112,24 +110,22 @@ def secant(N,T):
         x2 = x
         if np.abs(x2-x1)<tol:
             break
-    r = semmaj*(1-e*np.cos(x))
+    r = a*(1-e*np.cos(x))
     return r
 
 def relax(N,T):
     a = 1.523679
     e = 0.0934
-    semmaj = a/(1+e)
     x = 0
     for i in range(N):
         x = x - tomin(x,T,a,e)
-    r = semmaj*(1-e*np.cos(x))
+    r = a*(1-e*np.cos(x))
     return r
 
 def bisect(N,T):
     tol = 1e-16
     a = 1.523679
     e = 0.0934
-    semmaj = a/(1+e)
     x1 = 0
     x2 = 2*np.pi
     fx1 = tomin(x1,T,a,e)
@@ -155,5 +151,5 @@ def bisect(N,T):
             print('even root number at %i!' % count)
             break
     x = 0.5*(x1+x2)
-    r = semmaj*(1-e*np.cos(x))
+    r = a*(1-e*np.cos(x))
     return r
