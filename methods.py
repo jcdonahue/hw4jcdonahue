@@ -49,7 +49,7 @@ def adaprk4(h,r,T):
             diff = np.abs(r1-r2)
             if np.any(diff == 0):
                 diff = h*ep0
-            rho = 30*h*ep0/np.abs(r1-r2)
+            rho = 30*h*ep0/diff
             rhomax = max(rho)
             if np.all(rho>1):
                 t += h
