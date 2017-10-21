@@ -6,7 +6,7 @@ import time
 import leastsquares as ls
 
 
-def dfgr(r,i):
+def dfgr(r,i):            #the same as df in the regular code with the option to add in GR effects
     rad = np.sqrt(np.power(r[0],2)+np.power(r[1],2))
     rs = i*2.0/63200
     df = np.zeros(4)
@@ -16,7 +16,7 @@ def dfgr(r,i):
     df[3] = -4*np.power(np.pi, 2)*r[1]*np.power(rad-rs,-2)/rad
     return df
 
-def rk4gr(h,y0,N,i):
+def rk4gr(h,y0,N,i):        #same as previous rk4 but an option to add in GR effects
     track = np.zeros([N,4])
     track[0,:] = y0
     for j in range(N-1):
@@ -29,8 +29,9 @@ def rk4gr(h,y0,N,i):
     return track
 
 
-def adaprk4gr(h,r,T,i):
-    ep0 = np.array([1e-10,1e-10,1e-10,1e-10])
+
+def adaprk4gr(h,r,T,i):      #same as other adaptive scheme but with GR effects optional
+    ep0 = np.array([1e-14,1e-14,1e-14,1e-14])
     t = 0
     track = [r]
     count = 0
@@ -47,12 +48,14 @@ def adaprk4gr(h,r,T,i):
             rho = 30*h*ep0/diff
             rhomax = max(rho)
             if np.all(rho>1):
-                t += h
+                t += 2*h
                 track  = np.append(track,[r1],axis=0)
                 p = np.power(min(rho),0.25)
                 if p>2:
                     p = 2
                 h = h*p
+                if 2*h>T-t:
+                    h = 0.5*(T-t)
                 r = r1
                 count = 0
             else:
@@ -62,15 +65,15 @@ def adaprk4gr(h,r,T,i):
     return track
 
 
-def orbitalgr(N,pers):
+def orbitalgr(N,pers):        #plots the GR effected orbits
     period = 15.559
     T = period*pers
     h = T/N
     e = 0.880
-    a = 120
+    a = 7
     rs = 2.0/63200
     r = np.zeros(4)
-    r[0] = -a*(1-e)
+    r[0] = -a*(1+e)
     r[3] = 2*np.pi*np.sqrt((1-e)/(a*(1+e)))
                                     
     track1 = adaprk4gr(h,r,T,0)
@@ -85,4 +88,9 @@ def orbitalgr(N,pers):
     ax1[0].plot(E2,'r-')
     ax1[1].plot(track1[:,0],track1[:,1],'k-')
     ax1[1].plot(track2[:,0],track2[:,1],'r-')
+    ax1[0].set_title("t = "+str(T))
+    ax1[0].set_xlabel('step')
+    ax1[0].set_ylabel('E')
+    ax1[1].set_xlabel('x (AU)')
+    ax1[1].set_ylabel('y (AU)')
     return np.abs(rad1[-1]-rad2[-1])
